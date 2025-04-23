@@ -15,6 +15,7 @@ library(dplyr)
 library(stringr)
 library(stringi)
 library(Lahman)
+library(tidyverse)
 
 # URL of the 2025 Hall of Fame voting page
 url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
@@ -90,6 +91,16 @@ hof_2025 <- hof_2025 %>%
 hof_2025 <- hof_2025 %>%
   select(playerID, yearID, votedBy, ballots, needed, votes = Votes,
          inducted, category, needed_note)
+HallOfFame <- rbind(HallOfFame,hof_2025)
+
+HallOfFame %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2024))
 
 
+
+# create csv
+
+readr::write_csv(HallOfFame, file="HallOfFame.csv")
 ```
