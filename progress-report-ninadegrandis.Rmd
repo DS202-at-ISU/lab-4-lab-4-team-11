@@ -1,0 +1,56 @@
+---
+title: "progress-report-ninadegrandis"
+author: "Nina De Grandis"
+date: "2025-04-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(Lahman)
+head(HallOfFame)
+```
+
+
+```{r}
+library(rvest)
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml#all_hof_BBWAA"
+html <- read_html(url)
+html
+
+tables <- html %>% html_table(fill=TRUE)
+```
+
+
+```{r}
+now_hof <- tables[[1]]
+head(now_hof)
+```
+
+```{r}
+data <- tables[[1]]
+actual_col_names <- data[1, ]
+colnames(data) <- actual_col_names
+data <- data[-1, ]
+head(data, 3)
+new25<-data
+
+head(new25)
+```
+
+```{r}
+str(new25)
+```
+
+```{r}
+HallOfFame %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2024))
+```
+
+
