@@ -9,22 +9,87 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r}
+library(rvest)
+library(dplyr)
+library(stringr)
+library(stringi)
+library(Lahman)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# URL of the 2025 Hall of Fame voting page
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# Read the webpage
+page <- read_html(url)
 
-```{r cars}
-summary(cars)
+# Extract the main HOF voting table
+hof_table <- page %>%
+  html_element("table") %>% 
+  html_table(fill = TRUE)
+
+
+View(hof_table)
+
+
+# Promote first row to column names
+colnames(hof_table) <- as.character(unlist(hof_table[1, ]))
+hof_table <- hof_table[-1, ]
+
+# take the years on Ballot
+hof_table$YoB <- str_extract(hof_table$YoB, "\\d+")
+hof_table$YoB <- as.numeric(hof_table$YoB)
+
+# take the names and votes
+hof_2025 <- hof_table |>
+  select(
+    Name,
+    Votes
+  )
+View(hof_2025)
+
+# add all the other necessary columns
+
+hof_2025 <- hof_2025 |>
+  mutate(
+    yearID = 2025,
+    votedBy = "BBWAA",
+    ballots = 394,
+    needed = 296,
+    category = "Player",
+    inducted = ifelse(Votes>=296, "Y", "N"),
+    needed_note = NA # not sure what would go here
+  )
+
+# take out any apostraphes or accents on tops of letters
+
+hof_2025 <- hof_2025 %>%
+  mutate(Name = stri_trans_general(Name, "Latin-ASCII"))
+
+# take out the X- in front of the names
+hof_2025 <- hof_2025 %>%
+  mutate(Name = gsub("^X-\\s*", "", Name, ignore.case = TRUE))
+
+View(HallOfFame)
+
+# add a full name column to the People dataset
+people_expanded <- People |>
+  mutate(playerName = paste(nameFirst, nameLast))
+
+# add the player id based on a left join on name
+hof_2025 <- hof_2025 %>%
+  left_join(
+    people_expanded %>% select(playerID, playerName),
+    by = c("Name" = "playerName")
+  )
+
+# remove the name column
+hof_2025 <- hof_2025 %>%
+  select(-Name)
+
+#rename the variables so they macth when binding
+hof_2025 <- hof_2025 %>%
+  select(playerID, yearID, votedBy, ballots, needed, votes = Votes,
+         inducted, category, needed_note)
+
+
 ```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
