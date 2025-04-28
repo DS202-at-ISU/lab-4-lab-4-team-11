@@ -2,4 +2,100 @@
 title: "progress-report-Ashlynn"
 output: html_document
 ---
-hie
+<!-- README.md is generated from README.Rmd. Please edit the README.Rmd file -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Lab report #4 - instructions
+
+Follow the instructions posted at <https://ds202-at-isu.github.io/labs.html> for the lab assignment. The work is meant to be finished during the lab time, but you have time until Monday (after Thanksgiving) to polish things.
+
+All submissions to the github repo will be automatically uploaded for grading once the due date is passed. Submit a link to your repository on Canvas (only one submission per team) to signal to the instructors that you are done with your submission.
+
+# Lab 4: Scraping (into) the Hall of Fame
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(rvest)
+library(dplyr)
+library(stringr)
+library(stringi)
+library(Lahman)
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+tables <- html_table(html)
+tables
+
+
+  
+```
+
+```{r}
+hof <- Lahman::HallOfFame
+head(hof)
+```
+
+
+```{r}
+data <- tables[[1]]
+actual_col_names <- data[1, ]
+colnames(data) <- actual_col_names
+data <- data[-1, ]
+head(data, 3)
+
+data$Votes <- as.numeric(data$Votes)
+data$Yrs <- as.numeric(data$Yrs)
+
+new25 <- data
+
+new25$Votes <- as.numeric(new25$Votes)  
+new25$YoB <- str_extract(new25$YoB, "\\d+")  
+
+
+new25 <- new25 |>
+  select(Name, Votes)
+
+head(new25)
+
+new25 <- new25 %>% mutate(
+  yearID = 2025,
+  votedBy = "BBWAA",
+  ballots = 394,
+  needed = 296,
+  inducted = ifelse(Votes>=292, "Y", "N"),
+  category = NA, # don't know yet
+  needed_note = NA # not sure what would go here
+) 
+
+People <- People %>% mutate(Name = paste(nameFirst, nameLast))
+
+new25 <- new25 %>%
+  left_join(
+    People %>% select(playerID, Name),
+    by = "Name"
+  )
+
+new25 <- new25 %>%
+  select(playerID, yearID, votedBy, ballots, needed, votes = Votes,
+         inducted, category, needed_note)
+hof <- rbind(hof,new25)
+
+head(hof)
+
+```
+```{r}
+hof <- Lahman::HallOfFame
+head(hof)
+
+```
+
+```{r}
+library(ggplot2)
+hof%>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2025))
+```
+
