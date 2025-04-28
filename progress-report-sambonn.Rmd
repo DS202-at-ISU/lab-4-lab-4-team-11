@@ -11,13 +11,119 @@ knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
-
-
 library(Lahman)
 head(HallOfFame, 3)
+
+?Lahman
+
+data(HallOfFame)
+head(HallOfFame)
+
+str(HallOfFame)
 
 
 HallOfFame %>% 
   ggplot(aes(x = yearID, fill = inducted)) +
   geom_bar() +
   xlim(c(1936, 2024))
+
+
+
+library(rvest)
+url <- "https://www.baseball-reference.com/awards/hof_2025.shtml"
+html <- read_html(url)
+tables <- html_table(html)
+
+
+head(tables[[1]], 5)
+
+
+#If Needed
+data <- tables[[1]]
+actual_col_names <- data[1, ]
+colnames(data) <- actual_col_names
+data <- data[-1, ]
+head(data, 3)
+
+head(data)
+
+str(data)
+
+data$Votes <- as.numeric(data$Votes)
+
+data$Yrs <- as.numeric(data$Yrs)
+
+newhof<-data
+
+head(newhof)
+newhof$Votes <- as.numeric(newhof$Votes)
+newhof$Yrs <- as.numeric(newhof$Yrs)
+
+view(newhof)
+
+newhof$YoB <- str_extract(newhof$YoB, "\\d+")
+newhof$YoB <- as.numeric(newhof$YoB)
+
+newhof <- newhof |>
+  select(
+    Name,
+    Votes
+  )
+
+newhof <- newhof |>
+  mutate(
+    yearID = 2025,
+    votedBy = "BBWAA",
+    ballots = 394,
+    needed = 296,
+    category = "Player",
+    inducted = ifelse(Votes>=296, "Y", "N"),
+    needed_note = NA
+  )
+
+newhof <- newhof %>%
+  mutate(Name = stri_trans_general(Name, "Latin-ASCII"))
+
+
+newhof <- newhof %>%
+  mutate(Name = gsub("^X-\\s*", "", Name, ignore.case = TRUE))
+
+
+view(newhof)
+
+people_expanded <- People |>
+  mutate(playerName = paste(nameFirst, nameLast))
+
+newhof <- newhof %>%
+  left_join(
+    people_expanded %>% select(playerID, playerName),
+    by = c("Name" = "playerName")
+  )
+
+newhof <- newhof %>%
+  select(playerID, yearID, votedBy, ballots, needed, votes = Votes,
+         inducted, category, needed_note)
+HallOfFame <- rbind(HallOfFame,newhof)
+
+view(HallOfFame)
+
+
+HallOfFame %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2025))
+
+
+
+
+
+
+Checking <- read.csv("HallOfFame.csv")
+
+head(Checking)
+
+Checking %>% 
+  ggplot(aes(x = yearID, fill = inducted)) +
+  geom_bar() +
+  xlim(c(1936, 2025))
+  
